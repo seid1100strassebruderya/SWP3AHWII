@@ -1,33 +1,48 @@
-console.log('here is my query:');
-// TODO
-
-
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ log: ['query', 'info', 'warn', 'error'] });
 
-async function query() {
-
-    const getWatchlistNamesQuery = await prisma.watchlist.findMany({
-        select: { name: true },
-        where: { benutzerId: 1 },
-    });
-
-    const TracksQuery = await prisma.watchlist.findMany({
-        select: { Track: true },
-        where: { benutzerId: 7 },
-    });
-
-    getWatchlistNamesQuery.forEach((watchlist) => {
-        console.log(watchlist);
-    });
-
-    TracksQuery.forEach((track) => {
-        track.Track.forEach((t) => {
-            console.log(t);
-        });
-    });
-
+if (process.argv.length != 3) {
+    console.log('no user provided, exiting');
+    process.exit(1);
 }
-
-query()
-    .then(() => console.log('done'));
+const userName = process.argv.at(-1).trim();
+if (!userName) {
+    console.log('empty username provided, exiting');
+    process.exit(1);
+}
+console.log(`finding watchlist names for ${userName}`);
+async function getWatchlistNamesForUser(userName) {
+    return await prisma.watchlist.findMany({
+        select: {
+            id: true,
+            name: true,
+        },
+        where: {
+            benutzer: {
+                fullname: userName,
+            },
+        },
+    });
+}
+async function tracksFromWatchlist(id) {
+    return await prisma.track.findMany({
+        where: {
+            watchLists: {
+                some: { id: id },
+            },
+        },
+    });
+}
+async function main() {
+    const lists = await getWatchlistNamesForUser(userName);
+    for (let wl of lists) {
+        const tracks = await tracksFromWatchlist(wl.id);
+        console.log(
+            `${userName}'s Watchlist ${wl.name} ... ${tracks.length} tracks`
+        );
+        for (let t of tracks) {
+            console.log(`    ${t.name} by ${t.artist} (${t.duration} secs)`);
+        }
+    }
+}
+main();
