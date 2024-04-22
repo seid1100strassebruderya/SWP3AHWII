@@ -59,4 +59,39 @@ async function main() {
     }
     const tracks = await getWatchlistsForTrack(1);
 }
+async function getUsersForTrack(trackName) {
+    const users = await prisma.benutzer.findMany({
+        where: {
+            watchLists: {
+                some: {
+                    tracks: {
+                        some: {
+                            name: trackName
+                        }
+                    }
+                }
+            }
+        },
+        select: {
+            fullname: true,
+            watchLists: {
+                select: {
+                    name: true
+                }
+            }
+        }
+    });
+    
+    console.log(`Users who have "${trackName}" on their watchlists:`);
+    users.forEach(user => {
+        console.log(`${user.fullname}:`);
+        user.watchLists.forEach(watchlist => {
+            console.log(`- ${watchlist.name}`);
+        });
+    });
+}
+
+// Call the function with the name of the specific track
+getUsersForTrack('specific_track_name')
+    .catch(handleError);
 main();
