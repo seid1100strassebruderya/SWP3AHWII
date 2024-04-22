@@ -33,6 +33,19 @@ async function tracksFromWatchlist(id) {
         },
     });
 }
+async function getWatchlistsForTrack(trackId) {
+    return await prisma.watchlist.findMany({
+        select: {
+            id: true,
+            name: true,
+        },
+        where: {
+            tracks: {
+                some: { id: trackId },
+            },
+        },
+    });
+}
 async function main() {
     const lists = await getWatchlistNamesForUser(userName);
     for (let wl of lists) {
@@ -44,5 +57,6 @@ async function main() {
             console.log(`    ${t.name} by ${t.artist} (${t.duration} secs)`);
         }
     }
+    const tracks = await getWatchlistsForTrack(1);
 }
 main();
